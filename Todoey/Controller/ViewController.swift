@@ -27,7 +27,11 @@ class ToDoListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         
+        //Update item
         dataSource[indexPath.row].done = !self.dataSource[indexPath.row].done
+        //remove item
+        //        contex.delete(dataSource[indexPath.row])
+        //        dataSource.remove(at: indexPath.row)
         SaveItem()
         
         
@@ -73,18 +77,34 @@ class ToDoListViewController: UITableViewController {
         }
     }
     
-    func loadItems(){
+    func loadItems(with request :NSFetchRequest<Item> = NSFetchRequest<Item>(entityName: "Item")
+    ){
         do{
-            let req  = Item.fetchRequest()
-            self.dataSource = try  contex.fetch(req)
+            dataSource = try contex.fetch(request)
+            tableView.reloadData()
         }
         catch{
             print("query data error \(error)")
-
         }
-        
+    }
+}
+
+//MARK: - Query database with text in searchBar
+extension ToDoListViewController : UISearchBarDelegate{
+    // chúg ta ko cần khởi tạo 1 UISearchbar trong ToDoListViewController rồi gán nó.delegate = self nữa vì đã nối trực tiếp searchBar vs cái ToDoListViewController trong mainStoryboard rồi
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        let request = NSFetchRequest<Item>(entityName: "Item")
+        request.predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+        request.sortDescriptors=[NSSortDescriptor(key: "title", ascending: true)]
+        loadItems(with: request)
+    }
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchBar.text?.count == 0 {
+            searchBar.resignFirstResponder()
+            loadItems()
+        }
     }
     
-    
 }
+
 
