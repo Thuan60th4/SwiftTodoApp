@@ -2,12 +2,16 @@ import UIKit
 import CoreData
 
 class ToDoListViewController: UITableViewController {
+    var selectedCategory : Category? {
+        didSet{
+            loadItems()
+        }
+    }
     var dataSource : [Item] = []
     let contex = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        loadItems()
         // Do any additional setup after loading the view.
     }
     
@@ -57,6 +61,8 @@ class ToDoListViewController: UITableViewController {
         let actionAlert = UIAlertAction(title: "Add", style: .default) { action in
             let work = Item(context: self.contex)
             work.title = (textField!).text!
+            //thêm cả th parentcategory trong relationship vào nữa để nó match vs th category được chọn
+            work.parentcategory = self.selectedCategory
             self.dataSource.append(work)
             self.SaveItem()
         }
@@ -66,6 +72,9 @@ class ToDoListViewController: UITableViewController {
         
         
     }
+    
+    
+    //MARK: - Load database
     
     func SaveItem(){
         do{
@@ -78,8 +87,23 @@ class ToDoListViewController: UITableViewController {
     }
     
     func loadItems(with request :NSFetchRequest<Item> = NSFetchRequest<Item>(entityName: "Item")
+                   ,predicate : NSPredicate? = nil
     ){
         do{
+        //tham khảo mấy cái truy vấn của coreData ở đây  https://nshipster.com/nspredicate/
+            
+            let categoryPredicate = NSPredicate(format: "parentcategory.name MATCHES %@ ", selectedCategory!.name!)
+            
+            if let additionPredicate = predicate {
+                
+                let combinePredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate,additionPredicate])
+                
+                request.predicate = combinePredicate
+            }
+            else{
+                request.predicate = categoryPredicate
+            }
+            
             dataSource = try contex.fetch(request)
             tableView.reloadData()
         }
@@ -94,9 +118,9 @@ extension ToDoListViewController : UISearchBarDelegate{
     // chúg ta ko cần khởi tạo 1 UISearchbar trong ToDoListViewController rồi gán nó.delegate = self nữa vì đã nối trực tiếp searchBar vs cái ToDoListViewController trong mainStoryboard rồi
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         let request = NSFetchRequest<Item>(entityName: "Item")
-        request.predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+        let predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
         request.sortDescriptors=[NSSortDescriptor(key: "title", ascending: true)]
-        loadItems(with: request)
+        loadItems(with: request,predicate: predicate)
     }
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         if searchBar.text?.count == 0 {
