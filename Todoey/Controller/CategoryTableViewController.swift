@@ -10,7 +10,7 @@ import UIKit
 import CoreData
 import RealmSwift
 
-class CategoryTableViewController: UITableViewController {
+class CategoryTableViewController: SwipeTableViewController {
     
     var listCategory : Results<Category>?
     let realm = try! Realm()
@@ -21,14 +21,12 @@ class CategoryTableViewController: UITableViewController {
     }
     
     //MARK: - TableView data
-    
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return listCategory?.count ?? 0
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "categoryCell", for: indexPath)
-        
+       let cell = super.tableView(tableView, cellForRowAt: indexPath)
         cell.textLabel?.text = listCategory?[indexPath.row].name
         return cell
         
@@ -49,7 +47,6 @@ class CategoryTableViewController: UITableViewController {
     }
     
     //MARK: - Alert action
-
     @IBAction func addCategory(_ sender: UIBarButtonItem) {
         var alertTextField : UITextField?
         
@@ -96,4 +93,48 @@ class CategoryTableViewController: UITableViewController {
 //        }
     }
     
+    override func updateDatasource(at indexPath: IndexPath) {
+        if let category = listCategory?[indexPath.row] {
+            do {
+                try self.realm.write({
+                    self.realm.delete(category)
+                    // ko đuọc gọi cái này vì sau khi chúng ta xoá 1 phần tử khỏi mảng,chúng ta reset lại mảng thì cái hành động delegate bên dưới sẽ lỗi vì nó ko bt được cái indexPath đó là gì để mà xoá
+    //                        tableView.reloadData()
+                })
+            } catch  {
+                print("delete category error \(error)")
+            }
+        }
+    }
+    
 }
+
+//MARK: - Swipe Cell
+//extension CategoryTableViewController : SwipeTableViewCellDelegate{
+//    func tableView(_ tableView: UITableView, editActionsForRowAt indexPath: IndexPath, for orientation: SwipeActionsOrientation) -> [SwipeAction]? {
+//        guard orientation == .right else { return nil }
+//
+//        let deleteAction = SwipeAction(style: .destructive, title: "Delete") { action, indexPath in
+//            if let category = self.listCategory?[indexPath.row] {
+//                do {
+//                    try self.realm.write({
+//                        self.realm.delete(category)
+//                        // ko đuọc gọi cái này vì sau khi chúng ta xoá 1 phần tử khỏi mảng,chúng ta reset lại mảng thì cái hành động delegate bên dưới sẽ lỗi vì nó ko bt được cái indexPath đó là gì để mà xoá
+////                        tableView.reloadData()
+//                    })
+//                } catch  {
+//                    print("delete category error \(error)")
+//                }
+//            }
+//        }
+//        return [deleteAction]
+//    }
+//
+//    func tableView(_ tableView: UITableView, editActionsOptionsForRowAt indexPath: IndexPath, for orientation: SwipeActionsOrientation) -> SwipeOptions {
+//        var options = SwipeOptions()
+//        options.expansionStyle = .destructive
+//        return options
+//    }
+//
+//}
+

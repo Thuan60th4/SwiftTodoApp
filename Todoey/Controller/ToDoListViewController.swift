@@ -2,7 +2,7 @@ import UIKit
 import CoreData
 import RealmSwift
 
-class ToDoListViewController: UITableViewController {
+class ToDoListViewController: SwipeTableViewController {
     var selectedCategory : Category? {
         didSet{
             loadItems()
@@ -22,7 +22,7 @@ class ToDoListViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         cell.textLabel?.text = dataSource?[indexPath.row].title
         cell.accessoryType =  self.dataSource?[indexPath.row].done ?? false ? .checkmark : .none
         return cell
@@ -32,12 +32,22 @@ class ToDoListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         
+        do {
+            try realm.write({
+                self.dataSource?[indexPath.row].done = !self.dataSource![indexPath.row].done
+            })
+        } catch {
+            print("Checked box error \(error)")
+        }
+        
+        tableView.reloadData()
+        
         //Update item
-//        dataSource[indexPath.row].done = !self.dataSource[indexPath.row].done
+        //        dataSource[indexPath.row].done = !self.dataSource[indexPath.row].done
         //remove item
         //        contex.delete(dataSource[indexPath.row])
         //        dataSource.remove(at: indexPath.row)
-//        SaveItem()
+        //        SaveItem()
         
         
         //  nó là option nil nên ta phải viết .accessoryType bên dưới ý là chắc gì nó đã có mà .accessoryType
@@ -61,8 +71,7 @@ class ToDoListViewController: UITableViewController {
         
         let actionAlert = UIAlertAction(title: "Add", style: .default) { action in
             let item = Item()
-            item.title = (textField!).text!
-
+            item.title = textField!.text!
             self.SaveItem(item)
         }
         alertModal.addAction(actionAlert)
@@ -77,7 +86,7 @@ class ToDoListViewController: UITableViewController {
     
     func SaveItem(_ item : Item){
         do{
-           try realm.write {
+            try realm.write {
                 selectedCategory?.items.append(item)
             }
             tableView.reloadData()
@@ -92,21 +101,38 @@ class ToDoListViewController: UITableViewController {
         tableView.reloadData()
     }
     
+    override func updateDatasource(at indexPath: IndexPath) {
+        do {
+            if let todoItem = dataSource?[indexPath.row] {
+                try realm.write({
+                    realm.delete(todoItem)
+                })
+            }
+        } catch {
+            print("delete todo item error \(error)")
+        }
+    }
+    
 }
 
 //MARK: - Query database with text in searchBar
 extension ToDoListViewController : UISearchBarDelegate{
     // chúg ta ko cần khởi tạo 1 UISearchbar trong ToDoListViewController rồi gán nó.delegate = self nữa vì đã nối trực tiếp searchBar vs cái ToDoListViewController trong mainStoryboard rồi
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-
+        dataSource = dataSource?.filter("title CONTAINS[cd] %@", searchBar.text!)
+        tableView.reloadData()
+        
     }
+
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         if searchBar.text?.count == 0 {
-            searchBar.resignFirstResponder()
+            DispatchQueue.main.async {
+                searchBar.resignFirstResponder()
+            }
             loadItems()
         }
     }
-
+    
 }
 
 
