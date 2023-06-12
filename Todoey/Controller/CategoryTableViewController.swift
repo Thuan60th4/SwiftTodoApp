@@ -9,6 +9,8 @@
 import UIKit
 import CoreData
 import RealmSwift
+import ChameleonFramework
+
 
 class CategoryTableViewController: SwipeTableViewController {
     
@@ -18,6 +20,15 @@ class CategoryTableViewController: SwipeTableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         loadCategories()
+        
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        guard let navBarSC = navigationController?.navigationBar.scrollEdgeAppearance,let navBarST = navigationController?.navigationBar.standardAppearance
+        else{fatalError()}
+        
+        navBarST.backgroundColor = #colorLiteral(red: 0, green: 0.6924213171, blue: 1, alpha: 1)
+        navBarSC.backgroundColor = #colorLiteral(red: 0, green: 0.6924213171, blue: 1, alpha: 1)
     }
     
     //MARK: - TableView data
@@ -26,11 +37,18 @@ class CategoryTableViewController: SwipeTableViewController {
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-       let cell = super.tableView(tableView, cellForRowAt: indexPath)
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         cell.textLabel?.text = listCategory?[indexPath.row].name
-        return cell
+        if let color = UIColor(hexString: (listCategory?[indexPath.row].color)!){
+            cell.backgroundColor = color
+            cell.textLabel?.textColor = ContrastColorOf(color, returnFlat: true)
+            
+        }
         
+        return cell
     }
+    
+    
     
     //MARK: - Table delegate
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -60,6 +78,7 @@ class CategoryTableViewController: SwipeTableViewController {
         let actionModal = UIAlertAction(title: "Add", style: .default) { action in
             let category = Category()
             category.name = alertTextField!.text!
+            category.color = UIColor.randomFlat().hexValue()
             self.saveCategory(category)
         }
         
@@ -84,13 +103,13 @@ class CategoryTableViewController: SwipeTableViewController {
     func loadCategories(){
         listCategory = realm.objects(Category.self)
         tableView.reloadData()
-//        do {
-//            let request = NSFetchRequest<Category>(entityName: "Category")
-//            listCategory = try context.fetch(request)
-//            tableView.reloadData()
-//        } catch  {
-//            print("Get category list error \(error)")
-//        }
+        //        do {
+        //            let request = NSFetchRequest<Category>(entityName: "Category")
+        //            listCategory = try context.fetch(request)
+        //            tableView.reloadData()
+        //        } catch  {
+        //            print("Get category list error \(error)")
+        //        }
     }
     
     override func updateDatasource(at indexPath: IndexPath) {
@@ -99,7 +118,7 @@ class CategoryTableViewController: SwipeTableViewController {
                 try self.realm.write({
                     self.realm.delete(category)
                     // ko đuọc gọi cái này vì sau khi chúng ta xoá 1 phần tử khỏi mảng,chúng ta reset lại mảng thì cái hành động delegate bên dưới sẽ lỗi vì nó ko bt được cái indexPath đó là gì để mà xoá
-    //                        tableView.reloadData()
+                    //                        tableView.reloadData()
                 })
             } catch  {
                 print("delete category error \(error)")

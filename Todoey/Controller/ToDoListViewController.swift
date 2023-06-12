@@ -1,6 +1,7 @@
 import UIKit
 import CoreData
 import RealmSwift
+import ChameleonFramework
 
 class ToDoListViewController: SwipeTableViewController {
     var selectedCategory : Category? {
@@ -11,9 +12,30 @@ class ToDoListViewController: SwipeTableViewController {
     var dataSource : Results<Item>?
     let realm = try! Realm()
     
+    
+    @IBOutlet weak var searchBar: UISearchBar!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        tableView.rowHeight=50
         // Do any additional setup after loading the view.
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        //Viết navigationbar vào đây vì ở trong viewDidLoad,nó load xog màn này nhưng chưa chắc đã được đưa vào navigation stack
+        if let category = selectedCategory {
+            title = category.name
+            guard let navBarSC = navigationController?.navigationBar.scrollEdgeAppearance           ,let navBarST = navigationController?.navigationBar.standardAppearance
+            else{fatalError()}
+            
+            if let navbarColor = UIColor(hexString: category.color){
+                searchBar.barTintColor = navbarColor
+                navBarST.backgroundColor = navbarColor
+                navBarSC.backgroundColor = navbarColor
+            }
+        }
+        
+        
     }
     
     //MARK: - tableView dataSource method
@@ -23,8 +45,18 @@ class ToDoListViewController: SwipeTableViewController {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = super.tableView(tableView, cellForRowAt: indexPath)
-        cell.textLabel?.text = dataSource?[indexPath.row].title
-        cell.accessoryType =  self.dataSource?[indexPath.row].done ?? false ? .checkmark : .none
+        if let item = dataSource?[indexPath.row] {
+            
+            if let color = UIColor(hexString: selectedCategory!.color)?.darken(byPercentage: CGFloat(indexPath.row)/CGFloat(dataSource!.count)){
+                cell.textLabel?.textColor = ContrastColorOf(color, returnFlat: true)
+                cell.backgroundColor = color
+            }
+            
+            cell.textLabel?.text = item.title
+            
+            cell.accessoryType =  item.done ? .checkmark : .none
+            
+        }
         return cell
     }
     
@@ -123,7 +155,7 @@ extension ToDoListViewController : UISearchBarDelegate{
         tableView.reloadData()
         
     }
-
+    
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         if searchBar.text?.count == 0 {
             DispatchQueue.main.async {
